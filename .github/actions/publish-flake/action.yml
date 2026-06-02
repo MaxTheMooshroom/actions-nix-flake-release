@@ -1,0 +1,63 @@
+name:         "Helper: Publish Nix Flake"
+description:  "Publishes a nix flake to FlakeHub."
+
+inputs:
+  action-version:
+    description:  "The version of the 'flakehub-push' action to use."
+    required: false
+    default: "v6"
+
+  flake-repository:
+    required: false
+
+  flake-tags:
+    required: false
+
+  flake-store-output-paths:
+    required: false
+
+  versioning-kind:
+    description: "Whether to publish using tags or a rolling release. ('tagged'/'rolling')"
+    required: true
+    default: "tagged"
+
+  release-rolling-minor:
+    required: false
+
+  release-tag:
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - if:     ${{ inputs.versioning-kind != "rolling" && inputs.versioning-kind != "tagged" }}
+      shell:  bash
+      run: |
+        echo "versioning-kind value '${{ inputs.versioning-kind }}' is not valid" >&2
+        exit 1
+
+    - if:     ${{ inputs.versioning-kind == "tagged" && !inputs.flake-tag }}
+      shell:  bash
+      run: |
+        echo "inputs.flake-tag must be set when inputs.versioning-kind is 'tagged'" >&2
+        exit 1
+
+    - if:   inputs.versioning-kind == "rolling"
+      uses: "DeterminateSystems/flakehub-push@${{ inputs.action-version }}"
+      with:
+        repository:         ${{ inputs.flake-repository }}
+        visibility:         "public"
+        extra-labels:       ${{ inputs.flake-tags }}
+        store-output-paths: ${{ inputs.flake-store-output-paths }}
+        rolling:            true
+        rolling-minor:      ${{ inputs.release-rolling-minor }}
+
+    - if:   inputs.versioning-kind == "tagged"
+      uses: "DeterminateSystems/flakehub-push@${{ inputs.action-version }}"
+      with:
+        repository:         ${{ inputs.flake-repository }}
+        visibility:         "public"
+        extra-labels:       ${{ inputs.flake-tags }}
+        store-output-paths: ${{ inputs.flake-store-output-paths }}
+        tag:                ${{ inputs.release-tag }}
+

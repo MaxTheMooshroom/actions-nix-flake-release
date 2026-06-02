@@ -1,0 +1,112 @@
+name:         "Nix Flake CI/CD Helpers"
+description:  "Actions such as publishing to FlakeHub, updating binary caches, etc."
+author:       "Maxine Zick"
+branding:
+  icon: "cloud-lightning"
+  color: "yellow"
+
+inputs:
+  nix-action-version:
+    description: "The version of the 'determinate-nix-action' action to use."
+    required: false
+    default: "v3.21.0"
+
+  flakehub-flake-action-version:
+    description: "The version of the 'flakehub-push' action to use."
+    required: false
+    default: "v6"
+
+  flakehub-cache-action-version:
+    description: "Thte version of the 'flakehub-cache-action' action to use."
+    required: false
+    default: "v3.21.0"
+
+  nix-extra-conf:
+    description: "Extra lines that go in nix.conf"
+    required: false
+
+  nixpkgs-flake-ref:
+    description: "The nixpkgs flake-ref to use (such as `github:NixOS/nixpkgs/26.05`)."
+    required: false
+    default: "github:NixOS/nixpkgs/26.05"
+
+  flakehub-flake-repository:
+    description: "The GitHub repository containing your flake in the format of `{org}/{repo}`."
+    required: false
+
+  flakehub-flake-tags:
+    description: "Comma-separated values that the published flake is labeled with that are alphanumeric + hyphens only."
+    required: false
+
+  flakehub-versioning-kind:
+    description: "Whether to publish using tags or a rolling release. ('tagged'/'rolling')"
+    required: false
+
+  flakehub-release-tag:
+    description: "The Git tag to use for non-rolling releases. This must be the character `v` followed by a SemVer version, such as `v0.1.1`."
+    required: false
+
+  flakehub-release-rolling-minor:
+    description: "Specify the SemVer minor version of your rolling releases. All releases will follow the versioning scheme `0.[rolling-minor].[commit count]+rev-[git sha]`."
+    required: false
+
+  cache-flake-outputs:
+    description: "Comma-separated list of flake outputs to cache with FlakeHub."
+    required: false
+    default: "default"
+
+  cache-enable-flakehub:
+    description: "Whether or not to update the FlakeHub binary cache with the flake outputs specified in `cached-flake-outputs`."
+    required: false
+    default: false
+
+  cache-enable-cachix:
+    description: "Whether or not to update the Cachix binary cache with the flake outputs specified in `cache-flake-outputs`"
+    default: false
+    required: false
+
+  cache-name-cachix:
+    description: "The name of the cachix cache to push to."
+    required: false
+
+  cache-upstream-flakehub:
+    description: ""
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - uses: DeterminateSystems/determinate-nix-action@${{ inputs.nix-action-version }}
+      with:
+        extra-conf: ${{ inputs.nix-extra-conf }}
+
+    - uses: ./.github/actions/publish-flake
+      with:
+        action-version:             ${{ inputs.flakehub-flake-action-version }}
+        flake-repository:           ${{ inputs.flakehub-flake-repository }}
+        flake-store-output-paths:   ${{ inputs.flakehub-flake-store-output-paths }}
+        versioning-kind:            ${{ inputs.flakehub-versioning-kind }}
+        release-rolling-minor:      ${{ inputs.flakehub-flake-rolling-minor }}
+        release-tag:                ${{ inputs.flakehub-flake-tag }}
+
+    - if: inputs.cache-enable-flakehub
+      uses: DeterminateSystems/flakehub-cache-action@${{ inputs.flakehub-cache-action-version }}
+      with:
+        flakehub-flake-name: ${{ inputs.flakehub-flake-repository }}
+        upstream-cache: ${{ inputs.cache-upstream-flakehub }}
+
+    - if: inputs.cache-enable-flakehub
+      run: |
+        IFS=',' read -ra FLAKE_OUTPUTS_ARRAY <<< "${{ inputs.flakehub-cache-cached-outputs }}"
+        FLAKE_OUTPUTS=$(printf ".#%s " "${FLAKE_OUTPUTS_ARRAY[@]}")
+        nix build "${FLAKE_OUTPUTS[@]}" --print-build-logs
+
+    - if:   inputs.cache-enable-cachix
+      run:  nix profile add --accept-flake-config ${{ inputs.nixpkgs-flake-ref }}#cachix
+
+    - if: inputs.cache-enable-cachix && inputs.cache-name-cachix
+      run: |
+        nix flake archive --json                            \
+          | jq -r '.path,(.inputs|to_entries[].value.path)' \
+          | cachix push ${{ inputs.cache-name-cachix }}
+
