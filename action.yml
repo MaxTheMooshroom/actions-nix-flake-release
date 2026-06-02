@@ -8,17 +8,17 @@ branding:
 inputs:
   nix-action-version:
     description: "The version of the 'determinate-nix-action' action to use."
-    required: false
+    required: true
     default: "v3.21.0"
 
   flakehub-flake-action-version:
     description: "The version of the 'flakehub-push' action to use."
-    required: false
+    required: true
     default: "v6"
 
   flakehub-cache-action-version:
-    description: "Thte version of the 'flakehub-cache-action' action to use."
-    required: false
+    description: "The version of the 'flakehub-cache-action' action to use."
+    required: true
     default: "v3.21.0"
 
   nix-extra-conf:
@@ -27,7 +27,7 @@ inputs:
 
   nixpkgs-flake-ref:
     description: "The nixpkgs flake-ref to use (such as `github:NixOS/nixpkgs/26.05`)."
-    required: false
+    required: true
     default: "github:NixOS/nixpkgs/26.05"
 
   flakehub-flake-repository:
@@ -40,7 +40,7 @@ inputs:
 
   flakehub-versioning-kind:
     description: "Whether to publish using tags or a rolling release. ('tagged'/'rolling')"
-    required: false
+    required: true
 
   flakehub-release-tag:
     description: "The Git tag to use for non-rolling releases. This must be the character `v` followed by a SemVer version, such as `v0.1.1`."
