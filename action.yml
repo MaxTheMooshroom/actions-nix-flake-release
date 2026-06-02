@@ -70,7 +70,7 @@ inputs:
     required: false
 
   cache-upstream-flakehub:
-    description: ""
+    description: "Your preferred upstream cache. Store paths in this store will not be cached in GitHub Actions' cache."
     required: false
 
 runs:
