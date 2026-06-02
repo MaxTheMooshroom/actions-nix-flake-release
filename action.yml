@@ -80,7 +80,7 @@ runs:
       with:
         extra-conf: ${{ inputs.nix-extra-conf }}
 
-    - uses: ./.github/actions/publish-flake
+    - uses: ./publish-flake
       with:
         action-version:             ${{ inputs.flakehub-flake-action-version }}
         flake-repository:           ${{ inputs.flakehub-flake-repository }}
@@ -96,9 +96,12 @@ runs:
         upstream-cache: ${{ inputs.cache-upstream-flakehub }}
 
     - if: inputs.cache-enable-flakehub
-      run: nix build $(./format-flake-outputs.bash "${{ inputs.cache-flake-outputs }}")
+      env:
+        CACHED_FLAKE_OUTPUTS: ${{ inputs.cache-flake-outputs }}
+      run: |
+        nix build $(./format-flake-outputs.bash "${CACHED_FLAKE_OUTPUTS}")
 
-    - if:   inputs.cache-enable-cachix
+    - if: inputs.cache-enable-cachix
       run: |
         nix profile add --accept-flake-config ${{ inputs.nixpkgs-flake-ref }}#cachix
         nix flake archive --json                            \
