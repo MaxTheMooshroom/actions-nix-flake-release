@@ -61,7 +61,7 @@ inputs:
     default: false
 
   cache-enable-cachix:
-    description: "Whether or not to update the Cachix binary cache with the flake outputs specified in `cache-flake-outputs`"
+    description: "Whether or not to update the Cachix binary cache with the flake outputs specified in `cache-flake-outputs`."
     default: false
     required: false
 
