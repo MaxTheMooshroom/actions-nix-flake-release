@@ -95,16 +95,17 @@ runs:
         flakehub-flake-name: ${{ inputs.flakehub-flake-repository }}
         upstream-cache: ${{ inputs.cache-upstream-flakehub }}
 
-    - if: inputs.cache-enable-flakehub
+    - if:   inputs.cache-enable-flakehub
       env:
         CACHED_FLAKE_OUTPUTS: ${{ inputs.cache-flake-outputs }}
       run: |
-        nix build $(./format-flake-outputs.bash "${CACHED_FLAKE_OUTPUTS}")
+        IFS=',' read -ra FLAKE_OUTPUTS <<< "${CACHED_FLAKE_OUTPUTS}"
+        nix build $(printf ".#%s " "${FLAKE_OUTPUTS[@]}")
 
     - if: inputs.cache-enable-cachix
       run: |
         nix profile add --accept-flake-config ${{ inputs.nixpkgs-flake-ref }}#cachix
-        nix flake archive --json                            \
-          | jq -r '.path,(.inputs|to_entries[].value.path)' \
+        nix flake archive --json                                  \
+          | jq -r '.path,(.inputs|to_entries[].value.path|values' \
           | cachix push ${{ inputs.cache-name-cachix }}
 

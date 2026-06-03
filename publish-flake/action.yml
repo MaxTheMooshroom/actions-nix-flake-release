@@ -30,7 +30,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - if:     ${{ inputs.versioning-kind != "rolling" && inputs.versioning-kind != "tagged" }}
+    - if:     ${{ !contains(fromJSON('["rolling", "tagged"]'), inputs.versioning-kind) }}
       shell:  bash
       run: |
         echo "versioning-kind value '${{ inputs.versioning-kind }}' is not valid" >&2
